@@ -51,6 +51,7 @@ p { margin: 0; }
 
 /* Image slots */
 .frame { position: relative; background: var(--wash); overflow: hidden; max-width: 100%; }
+#cover-dek.quote { font-family: var(--display); font-style: italic; color: var(--ink); }
 .frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .frame .slot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 
@@ -491,10 +492,10 @@ footer .wrap { padding-block: 28px 48px; display: flex; justify-content: space-b
       </figure>
       <div class="cover-copy">
         <p class="kicker accent">This week's update</p>
-        <h2>[The fashion update headline]</h2>
-        <p class="dek">[Two lines on what's happening in fashion right now, and why it matters for anyone travelling or dressing this season.]</p>
-        <p class="byline">[By name] · [City]</p>
-        <a class="textlink" href="https://app.whattowear.in">Read in the app</a>
+        <h2 id="cover-title">What people are saving this week.</h2>
+        <p class="dek" id="cover-dek">Every week the cover goes to the most-saved public find on whattowear.in: a place, a piece or a look someone loved enough to share.</p>
+        <p class="byline" id="cover-byline">From the whattowear.in community</p>
+        <a class="textlink" id="cover-link" href="https://app.whattowear.in">See it in the app</a>
       </div>
     </div>
   </section>
@@ -1108,8 +1109,17 @@ footer .wrap { padding-block: 28px 48px; display: flex; justify-content: space-b
       img.onload = function () { frame.textContent = ''; frame.appendChild(img); };
       img.src = SUPABASE_URL + '/storage/v1/object/public/pin-photos/' + pick.image_path.replace(/^pin-photos\//, '');
       var credit = document.getElementById('cover-credit');
-      credit.textContent = 'Most saved this week · ' + (pick.author_handle ? '@' + pick.author_handle : '@localfind') + (pick.city_name ? ' · ' + pick.city_name : '');
+      var who = pick.author_handle ? '@' + pick.author_handle : 'a local';
+      var popular = (pick.saves || 0) >= 3;
+      credit.textContent = (popular ? 'Most saved this week' : 'This week\u2019s pick') + ' \u00b7 ' + who + (pick.city_name ? ' \u00b7 ' + pick.city_name : '');
       credit.hidden = false;
+      // The words come from the same public post as the photo.
+      if (pick.place_name) document.getElementById('cover-title').textContent = pick.place_name;
+      var dek = document.getElementById('cover-dek');
+      if (pick.note) { dek.textContent = '\u201c' + pick.note.trim() + '\u201d'; dek.classList.add('quote'); }
+      else { dek.textContent = 'Saved ' + (pick.saves || 0) + ' times this week by people who love to dress well' + (pick.city_name ? ' in ' + pick.city_name : '') + '.'; }
+      document.getElementById('cover-byline').textContent = 'Shared by ' + who + (pick.city_name ? ' \u00b7 ' + pick.city_name : '');
+      if (pick.pin_id) document.getElementById('cover-link').href = 'https://app.whattowear.in/?pin=' + encodeURIComponent(pick.pin_id);
     }).catch(function () {});
   })();
 
