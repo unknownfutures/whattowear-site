@@ -1107,11 +1107,21 @@ footer .wrap { padding-block: 28px 48px; display: flex; justify-content: space-b
       var img = new Image();
       img.alt = pick.place_name ? pick.place_name + (pick.city_name ? ', ' + pick.city_name : '') : 'This week\'s most-saved find';
       img.onload = function () { frame.textContent = ''; frame.appendChild(img); };
-      var path = String(pick.image_path).trim();
-      // Accept a full URL, a 'bucket/path' value, or a bare path inside pin-photos.
-      img.src = /^https?:\/\//.test(path) ? path
-        : SUPABASE_URL + '/storage/v1/object/public/' + (/^(pin-photos|boutique-photos|event-photos|editorial)\//.test(path.replace(/^\/+/, '')) ? path.replace(/^\/+/, '') : 'pin-photos/' + path.replace(/^\/+/, ''));
-      img.onerror = function () { if (window.console) console.warn('Cover photo did not load:', img.src); };
+      var path = String(pick.image_path).trim().replace(/^\/+/, '');
+      img.onerror = function () { if (window.console) console.warn('Cover photo did not load'); };
+      if (/^https?:\/\//.test(path)) { img.src = path; }
+      else {
+        // pin-photos is a private bucket: ask Supabase for a short-lived link. Only cover-approved photos are allowed (see SQL).
+        var obj = path.replace(/^pin-photos\//, '');
+        fetch(SUPABASE_URL + '/storage/v1/object/sign/pin-photos/' + obj.split('/').map(encodeURIComponent).join('/'), {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expiresIn: 86400 })
+        }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          var u = j && (j.signedURL || j.signedUrl);
+          if (u) img.src = /^https?:/.test(u) ? u : SUPABASE_URL + '/storage/v1' + (u.charAt(0) === '/' ? '' : '/') + u;
+        }).catch(function () {});
+      }
       var credit = document.getElementById('cover-credit');
       var who = pick.author_handle ? '@' + pick.author_handle : 'a local';
       var popular = (pick.saves || 0) >= 3;
