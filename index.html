@@ -1107,7 +1107,11 @@ footer .wrap { padding-block: 28px 48px; display: flex; justify-content: space-b
       var img = new Image();
       img.alt = pick.place_name ? pick.place_name + (pick.city_name ? ', ' + pick.city_name : '') : 'This week\'s most-saved find';
       img.onload = function () { frame.textContent = ''; frame.appendChild(img); };
-      img.src = SUPABASE_URL + '/storage/v1/object/public/pin-photos/' + pick.image_path.replace(/^pin-photos\//, '');
+      var path = String(pick.image_path).trim();
+      // Accept a full URL, a 'bucket/path' value, or a bare path inside pin-photos.
+      img.src = /^https?:\/\//.test(path) ? path
+        : SUPABASE_URL + '/storage/v1/object/public/' + (/^(pin-photos|boutique-photos|event-photos|editorial)\//.test(path.replace(/^\/+/, '')) ? path.replace(/^\/+/, '') : 'pin-photos/' + path.replace(/^\/+/, ''));
+      img.onerror = function () { if (window.console) console.warn('Cover photo did not load:', img.src); };
       var credit = document.getElementById('cover-credit');
       var who = pick.author_handle ? '@' + pick.author_handle : 'a local';
       var popular = (pick.saves || 0) >= 3;
